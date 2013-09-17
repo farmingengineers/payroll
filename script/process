@@ -1,8 +1,7 @@
 #!/usr/bin/env ruby
 #/ Usage: ./script/process farming-engineers-time.csv
 
-require 'csv'
-require 'time'
+require 'date'
 
 def main(input_file)
   all_entries = read_input(input_file)
@@ -31,9 +30,38 @@ end
 #/    Job Bob 7:55-9:30
 #/    Mel Adams 8:01 9:01
 def read_input(path)
-  CSV.read(path).map do |row|
-    { :name => row[0], :start => Time.parse(row[1]), :end => Time.parse(row[2]), :raw => row }
+  entries = []
+  File.open(path) do |f|
+    current_date = nil
+    while line = (f.readline rescue nil)
+      line = line.strip
+      if ! line.empty?
+        if line =~ /^[0-9\/-]+$/
+          current_date = Date.parse(line)
+          #puts "DATE: #{line} -> #{Date.parse(line) rescue $!}"
+        else
+          parts = line.split(/\s+/)
+          entry = {}
+          entry[:end] = parts.pop
+          if entry[:end] =~ /-/
+            entry[:start], entry[:end] = entry[:end].split(/-/)
+          else
+            entry[:start] = parts.pop
+            if entry[:start] == '-'
+              entry[:start] = parts.pop
+            end
+          end
+          [:start, :end].each do |time|
+            hr, min = entry[time].split(/:/).map(&:to_i)
+            entry[time] = current_date.to_time + (hr * 60 + min) * 60
+          end
+          entry[:name] = parts.join(' ')
+          entries << entry
+        end
+      end
+    end
   end
+  entries
 end
 
 # Checks that all the entries are within two weeks of each other.
@@ -47,7 +75,7 @@ def validate(entries)
     first = entry[:start] if first.nil? || first > entry[:start]
     last  = entry[:end]   if last.nil?  || last  < entry[:end]
   end
-  if last - first > 14*24*60*60 # 14 days
+  if last && first && last - first > 14*24*60*60 # 14 days
     errors << "Time entries span more than two weeks! from #{first} to #{last}"
   end
   errors
