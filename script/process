@@ -1,4 +1,4 @@
-#!/usr/bin/env bundle exec ruby
+#!/usr/bin/env ruby
 #/ Usage: ./script/process farming-engineers-time.csv
 #/ output is what you can send to Bob.
 
