@@ -35,29 +35,15 @@ def read_input(path)
     current_date = nil
     while line = (f.readline rescue nil)
       line = line.strip
-      if ! line.empty?
-        if line =~ /^[0-9\/-]+$/
-          current_date = Date.parse(line)
-          #puts "DATE: #{line} -> #{Date.parse(line) rescue $!}"
-        else
-          parts = line.split(/\s+/)
-          entry = {}
-          entry[:end] = parts.pop
-          if entry[:end] =~ /-/
-            entry[:start], entry[:end] = entry[:end].split(/-/)
-          else
-            entry[:start] = parts.pop
-            if entry[:start] == '-'
-              entry[:start] = parts.pop
-            end
-          end
-          [:start, :end].each do |time|
-            hr, min = entry[time].split(/:/).map(&:to_i)
-            entry[time] = current_date.to_time + (hr * 60 + min) * 60
-          end
-          entry[:name] = parts.join(' ')
-          entries << entry
-        end
+      if line =~ /^[0-9\/-]+$/
+        current_date = Date.parse(line)
+      elsif line =~ /^(.*)\s+(\d{1,2}):(\d{1,2})[\s-]+(\d{1,2}):(\d{1,2})$/
+        entry = { :raw => line }
+        _, name, shr, smin, ehr, emin = $~.to_a
+        entry[:name] = name
+        entry[:start] = current_date.to_time + 60 * (smin.to_i + (60 * shr.to_i))
+        entry[:end]   = current_date.to_time + 60 * (emin.to_i + (60 * ehr.to_i))
+        entries << entry
       end
     end
   end
