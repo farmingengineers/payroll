@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 #/ Usage: ./script/process farming-engineers-time.csv
-#/ output is what you can send to Bob.
 
 require 'csv'
 require 'time'
@@ -23,6 +22,14 @@ end
 # Argument: path to input file.
 #
 # Return: array of hashes. Each hash has keys :start, :end, :name
+#/
+#/ input looks like this:
+#/
+#/    9/2
+#/    Joe Bob 7:52 8:19
+#/    9/3
+#/    Job Bob 7:55-9:30
+#/    Mel Adams 8:01 9:01
 def read_input(path)
   CSV.read(path).map do |row|
     { :name => row[0], :start => Time.parse(row[1]), :end => Time.parse(row[2]), :raw => row }
@@ -56,6 +63,11 @@ def split_entries(entries)
 end
 
 # Reports someone's time for the two weeks.
+#/
+#/ output looks like this:
+#/
+#/    Job Bob 1.30 hours
+#/    Mel Adams 1.00 hours
 def report_employee(employee)
   name, entries = *employee
   seconds = entries.inject(0) { |sum, entry| sum + (entry[:end] - entry[:start]) }
