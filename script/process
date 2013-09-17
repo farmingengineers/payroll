@@ -1,0 +1,73 @@
+#!/usr/bin/env bundle exec ruby
+#/ Usage: ./script/process farming-engineers-time.csv
+#/ output is what you can send to Bob.
+
+require 'csv'
+require 'time'
+
+def main(input_file)
+  all_entries = read_input(input_file)
+  errors = validate(all_entries)
+  if errors.any?
+    puts "#{input_file} is not valid.", errors
+  else
+    per_employee = split_entries(all_entries)
+    per_employee.each do |employee|
+      report_employee(employee)
+    end
+  end
+end
+
+# Reads entries from a file.
+#
+# Argument: path to input file.
+#
+# Return: array of hashes. Each hash has keys :start, :end, :name
+def read_input(path)
+  CSV.read(path).map do |row|
+    { :name => row[0], :start => Time.parse(row[1]), :end => Time.parse(row[2]), :raw => row }
+  end
+end
+
+# Checks that all the entries are within two weeks of each other.
+def validate(entries)
+  first = last = nil
+  errors = []
+  entries.each do |entry|
+    if entry[:end] < entry[:start]
+      errors << "#{entry[:raw]} has its end before its start."
+    end
+    first = entry[:start] if first.nil? || first > entry[:start]
+    last  = entry[:end]   if last.nil?  || last  < entry[:end]
+  end
+  if last - first > 14*24*60*60 # 14 days
+    errors << "Time entries span more than two weeks! from #{first} to #{last}"
+  end
+  errors
+end
+
+# Splits entries per employee.
+def split_entries(entries)
+  per_employee = Hash.new { |h,k| h[k] = [] }
+  entries.each do |entry|
+    per_employee[entry[:name]] << entry
+  end
+  per_employee
+end
+
+# Reports someone's time for the two weeks.
+def report_employee(employee)
+  name, entries = *employee
+  seconds = entries.inject(0) { |sum, entry| sum + (entry[:end] - entry[:start]) }
+  hours = seconds / 3600
+  printf "%s %.2f hours\n", name, hours
+end
+
+if ARGV.size != 1 || !File.exists?(ARGV[0])
+  system "cat #{__FILE__} | grep ^#/ | cut -c4-"
+  exit 1
+end
+
+main(*ARGV)
+
+# vim:ft=ruby
