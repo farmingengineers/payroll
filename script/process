@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 #/ Usage: ./script/process farming-engineers-time.csv
 
-require 'date'
+require_relative "../lib/timesheets"
 
 def main(input_file)
   all_entries = read_input(input_file)
@@ -29,25 +29,19 @@ end
 #/    9/3
 #/    Job Bob 7:55-9:30
 #/    Mel Adams 8:01 9:01
+#/
+#/ or this
+#/
+#/    Joe Bob
+#/    9/2 7:52-8:19
+#/    9/3 7:55 9:30
+#/
+#/    Mel Adams
+#/    9/3 8:01 9:01
 def read_input(path)
-  entries = []
   File.open(path) do |f|
-    current_date = nil
-    while line = (f.readline rescue nil)
-      line = line.strip
-      if line =~ /^[0-9\/-]+$/
-        current_date = Date.parse(line)
-      elsif line =~ /^(.*)\s+(\d{1,2}):(\d{1,2})[\s-]+(\d{1,2}):(\d{1,2})$/
-        entry = { :raw => line }
-        _, name, shr, smin, ehr, emin = $~.to_a
-        entry[:name] = name
-        entry[:start] = current_date.to_time + 60 * (smin.to_i + (60 * shr.to_i))
-        entry[:end]   = current_date.to_time + 60 * (emin.to_i + (60 * ehr.to_i))
-        entries << entry
-      end
-    end
+    Timesheets.parse_raw(f)
   end
-  entries
 end
 
 # Checks that all the entries are within two weeks of each other.
