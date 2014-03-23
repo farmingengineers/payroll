@@ -19,21 +19,34 @@ module Timesheets
           _, date, shr, smin, ehr, emin = $~.to_a
           date = Date.parse(date)
           entry[:name] = current_name
-          entry[:start] = date.to_time + 60 * (smin.to_i + (60 * shr.to_i))
-          entry[:end]   = date.to_time + 60 * (emin.to_i + (60 * ehr.to_i))
+          entry[:start], entry[:end] = mktimes(date, [shr, smin], [ehr, emin])
           entries << entry
         elsif line =~ /^(.+)\s+(\d{1,2}):(\d{1,2})[\s-]+(\d{1,2}):(\d{1,2})$/
           entry = { :raw => line }
           _, name, shr, smin, ehr, emin = $~.to_a
           entry[:name] = name
-          entry[:start] = current_date.to_time + 60 * (smin.to_i + (60 * shr.to_i))
-          entry[:end]   = current_date.to_time + 60 * (emin.to_i + (60 * ehr.to_i))
+          entry[:start], entry[:end] = mktimes(current_date, [shr, smin], [ehr, emin])
           entries << entry
         else
           current_name = line
         end
       end
       entries
+    end
+
+    private
+
+    def mktimes(date, raw_start, raw_end)
+      start_time = mktime(date, *raw_start)
+      end_time = mktime(date, *raw_end)
+      if end_time < start_time
+        end_time += 12 * 60 * 60
+      end
+      [start_time, end_time]
+    end
+
+    def mktime(date, hr, min)
+      date.to_time + 60 * (min.to_i + (60 * hr.to_i))
     end
   end
 end
