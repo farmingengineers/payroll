@@ -1,11 +1,16 @@
 #!/usr/bin/env ruby
-#/ Usage: ./script/process farming-engineers-time.csv
+#/ Usage: ./script/process [options] farming-engineers-time.csv
+
+require 'optparse'
 
 require_relative "../lib/timesheets"
 
-def main(input_file)
-  all_entries = read_input(input_file)
+def main(options)
+  input_file = options.fetch(:input_file)
+
+  all_entries = read_input(input_file, options)
   errors = validate(all_entries)
+
   if errors.any?
     puts "#{input_file} is not valid.", errors
   else
@@ -14,6 +19,34 @@ def main(input_file)
       report_employee(employee)
     end
   end
+
+rescue Errno::ENOENT => e
+  puts "#$0: #{e.message}"
+  exit 1
+
+end
+
+def parse_options!
+  parsed = {}
+  opts = OptionParser.new do |opts|
+    opts.banner = File.read(__FILE__).lines.select { |line| line =~ /^#\// }.map { |line| line[3..-1].chomp }.join("\n") + "\n\n"
+
+    opts.on "-v", "--verbose", "Log the parse steps to stderr" do
+      parsed[:verbose] = true
+    end
+
+    opts.on "-h", "--help", "Show this message" do
+      puts opts
+      exit 0
+    end
+  end
+  opts.parse!
+  if ARGV.size != 1
+    puts opts
+    exit 1
+  end
+  parsed[:input_file] = ARGV[0]
+  parsed
 end
 
 # Reads entries from a file.
@@ -38,9 +71,11 @@ end
 #/
 #/    Mel Adams
 #/    9/3 8:01 9:01
-def read_input(path)
+def read_input(path, options)
+  parse_opts = {}
+  parse_opts[:log] = $stderr if options[:verbose]
   File.open(path) do |f|
-    Timesheets.parse_raw(f)
+    Timesheets.parse_raw(f, parse_opts)
   end
 end
 
@@ -83,11 +118,6 @@ def report_employee(employee)
   printf "%s %.2f hours\n", name, hours
 end
 
-if ARGV.size != 1 || !File.exists?(ARGV[0])
-  system "cat #{__FILE__} | grep ^#/ | cut -c4-"
-  exit 1
-end
-
-main(*ARGV)
+main(parse_options!)
 
 # vim:ft=ruby

@@ -1,16 +1,18 @@
 require 'date'
 
 module Timesheets
-  def self.parse_raw(io)
-    Parser.new.parse_raw(io)
+  def self.parse_raw(io, options = {})
+    Parser.new.parse_raw(io, options)
   end
 
   class Parser
-    def parse_raw(io)
+    def parse_raw(io, options = {})
+      log_io = options.fetch(:log) { NullIO.new }
       entries = []
       current_date = nil
       current_name = nil
       while !io.eof? && line = io.readline
+        log_io.puts "< #{line}"
         line = line.strip
         if line =~ /^[0-9\/-]+$/
           current_date = Date.parse(line)
@@ -20,12 +22,14 @@ module Timesheets
           date = Date.parse(date)
           entry[:name] = current_name
           entry[:start], entry[:end] = mktimes(date, [shr, smin], [ehr, emin])
+          log_entry(log_io, entry)
           entries << entry
         elsif line =~ /^(.+)\s+(\d{1,2}):(\d{1,2})[\s-]+(\d{1,2}):(\d{1,2})$/
           entry = { :raw => line }
           _, name, shr, smin, ehr, emin = $~.to_a
           entry[:name] = name
           entry[:start], entry[:end] = mktimes(current_date, [shr, smin], [ehr, emin])
+          log_entry(log_io, entry)
           entries << entry
         else
           current_name = line
@@ -47,6 +51,17 @@ module Timesheets
 
     def mktime(date, hr, min)
       date.to_time + 60 * (min.to_i + (60 * hr.to_i))
+    end
+
+    def log_entry(log_io, entry)
+      entry = entry.dup
+      entry.delete(:raw)
+      log_io.puts entry.inspect
+    end
+  end
+
+  class NullIO
+    def puts(*)
     end
   end
 end
