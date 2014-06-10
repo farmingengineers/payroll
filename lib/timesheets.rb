@@ -7,38 +7,67 @@ module Timesheets
 
   class Parser
     def parse_raw(io, options = {})
-      log_io = options.fetch(:log) { NullIO.new }
-      entries = []
-      current_date = nil
-      current_name = nil
+      pc = Struct.
+        new(:log_io, :entries, :current_date, :current_names).
+        new(options.fetch(:log) { NullIO.new }, [], nil, nil)
       while !io.eof? && line = io.readline
-        log_io.puts "< #{line}"
-        line = line.strip
-        if line =~ /^[0-9\/-]+$/
-          current_date = Date.parse(line)
-        elsif line =~ /^([0-9\/-]+)\s+(\d{1,2}):(\d{1,2})[\s-]+(\d{1,2}):(\d{1,2})$/
-          entry = { :raw => line }
-          _, date, shr, smin, ehr, emin = $~.to_a
-          date = Date.parse(date)
-          entry[:name] = current_name
-          entry[:start], entry[:end] = mktimes(date, [shr, smin], [ehr, emin])
-          log_entry(log_io, entry)
-          entries << entry
-        elsif line =~ /^(.+)\s+(\d{1,2}):(\d{1,2})[\s-]+(\d{1,2}):(\d{1,2})$/
-          entry = { :raw => line }
-          _, name, shr, smin, ehr, emin = $~.to_a
-          entry[:name] = name
-          entry[:start], entry[:end] = mktimes(current_date, [shr, smin], [ehr, emin])
-          log_entry(log_io, entry)
-          entries << entry
-        else
-          current_name = line
-        end
+        parse_line(line, pc)
       end
-      entries
+      pc.entries
     end
 
     private
+
+    # Matches a time (e.g. "5:22") and captures hours and minutes ("5" and "22").
+    TimeRegexp = /(\d{1,2}):(\d{1,2})/
+
+    # Matches a time range (e.g. "5:22 - 6:33") and captures hours and minutes from both ("5", "22", "6", "33").
+    TimeRangeRegexp = /#{TimeRegexp}[\s-]+#{TimeRegexp}/
+
+    # Matches a date (e.g. "9/2"), captures nothing.
+    DateRegexp = /[0-9\/-]+/
+
+    def parse_line(line, pc)
+      pc.log_io.puts "< #{line}"
+      line = line.strip
+      if line =~ /^#{DateRegexp}$/
+        # Just a date, set the context.
+        pc.current_date = parse_date(line)
+        pc.log_io.puts "current_date = #{pc.current_date}"
+      elsif line =~ /^#{TimeRangeRegexp}$/
+        # Just a time range, assume name and date are already set, output entries.
+        _, shr, smin, ehr, emin = $~.to_a
+        add_entries(pc, line, :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+      elsif line =~ /^(#{DateRegexp})\s+#{TimeRangeRegexp}$/
+        # Date and time range, assume name is already set, output entries.
+        _, date, shr, smin, ehr, emin = $~.to_a
+        add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
+      elsif line =~ /^(.+)\s+#{TimeRangeRegexp}$/
+        # Name and time range, assume date is already set, output entries.
+        _, name, shr, smin, ehr, emin = $~.to_a
+        add_entries(pc, line, :names => [name], :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+      elsif line =~ /.+/
+        # Just names. Update the context.
+        pc.current_names = line.split(/,/).map(&:strip)
+        pc.log_io.puts "current_names = #{pc.current_names.inspect}"
+      end
+    end
+
+    def add_entries(pc, line, data)
+      names = data.fetch(:names, pc.current_names)
+      times = data.fetch(:times)
+      names.each do |name|
+        entry = { :raw => line }
+        entry[:name] = name
+        entry[:start], entry[:end] = data.fetch(:times)
+        log_entry(pc.log_io, entry)
+        pc.entries << entry
+      end
+    end
+
+    def parse_date(date_str)
+      Date.parse(date_str)
+    end
 
     def mktimes(date, raw_start, raw_end)
       start_time = mktime(date, *raw_start)

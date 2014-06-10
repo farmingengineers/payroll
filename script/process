@@ -12,12 +12,16 @@ def main(options)
   errors = validate(all_entries)
 
   if errors.any?
-    puts "#{input_file} is not valid.", errors
-  else
-    per_employee = split_entries(all_entries)
-    per_employee.each do |employee|
-      report_employee(employee)
+    puts "#{input_file} is not valid."
+    errors.each do |error|
+      puts "ERROR: #{error}"
     end
+    exit 2 unless options[:force]
+  end
+
+  per_employee = split_entries(all_entries)
+  per_employee.sort_by(&:first).each do |employee|
+    report_employee(employee)
   end
 
 rescue Errno::ENOENT => e
@@ -30,6 +34,10 @@ def parse_options!
   parsed = {}
   opts = OptionParser.new do |opts|
     opts.banner = File.read(__FILE__).lines.select { |line| line =~ /^#\// }.map { |line| line[3..-1].chomp }.join("\n") + "\n\n"
+
+    opts.on "-f", "--force", "Process even if there are errors" do
+      parsed[:force] = true
+    end
 
     opts.on "-v", "--verbose", "Log the parse steps to stderr" do
       parsed[:verbose] = true

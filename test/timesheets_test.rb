@@ -45,15 +45,30 @@ TS
     ], parse(timesheet)
   end
 
+  def test_shared_shifts
+    timesheet = <<TS
+9/3
+Joe Bob, Mel Adams
+7:55 - 9:01
+9:30 - 13:30
+TS
+    assert_equal [
+      {:name => "Joe Bob", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
+      {:name => "Mel Adams", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
+      {:name => "Joe Bob", :start => T_3Sep_9_30, :end => T_3Sep_13_30},
+      {:name => "Mel Adams", :start => T_3Sep_9_30, :end => T_3Sep_13_30},
+    ], parse(timesheet)
+  end
+
   Year = Time.now.year
   T_2Sep_7_52 = Time.local(Year, "sep", 2, 7, 52)
   T_2Sep_8_19 = Time.local(Year, "sep", 2, 8, 19)
   T_2Sep_13_19 = Time.local(Year, "sep", 2, 13, 19)
   T_3Sep_7_55 = Time.local(Year, "sep", 3, 7, 55)
-  T_3Sep_9_30 = Time.local(Year, "sep", 3, 9, 30)
-  T_3Sep_13_30 = Time.local(Year, "sep", 3, 13, 30)
   T_3Sep_8_01 = Time.local(Year, "sep", 3, 8, 01)
   T_3Sep_9_01 = Time.local(Year, "sep", 3, 9, 01)
+  T_3Sep_9_30 = Time.local(Year, "sep", 3, 9, 30)
+  T_3Sep_13_30 = Time.local(Year, "sep", 3, 13, 30)
 
   private
 
