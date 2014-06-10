@@ -20,7 +20,7 @@ def main(options)
   end
 
   per_employee = split_entries(all_entries)
-  per_employee.each do |employee|
+  per_employee.sort_by(&:first).each do |employee|
     report_employee(employee)
   end
 
