@@ -37,34 +37,31 @@ module Timesheets
       elsif line =~ /^#{TimeRangeRegexp}$/
         # Just a time range, assume name and date are already set, output entries.
         _, shr, smin, ehr, emin = $~.to_a
-        pc.current_names.each do |name|
-          entry = { :raw => line }
-          entry[:name] = name
-          entry[:start], entry[:end] = mktimes(pc.current_date, [shr, smin], [ehr, emin])
-          log_entry(pc.log_io, entry)
-          pc.entries << entry
-        end
+        add_entries(pc, line, :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
       elsif line =~ /^(#{DateRegexp})\s+#{TimeRangeRegexp}$/
         # Date and time range, assume name is already set, output entries.
         _, date, shr, smin, ehr, emin = $~.to_a
-        date = parse_date(date)
-        pc.current_names.each do |name|
-          entry = { :raw => line }
-          entry[:name] = name
-          entry[:start], entry[:end] = mktimes(date, [shr, smin], [ehr, emin])
-          log_entry(pc.log_io, entry)
-          pc.entries << entry
-        end
+        add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
       elsif line =~ /^(.+)\s+#{TimeRangeRegexp}$/
+        # Name and time range, assume date is already set, output entries.
         _, name, shr, smin, ehr, emin = $~.to_a
-        entry = { :raw => line }
-        entry[:name] = name
-        entry[:start], entry[:end] = mktimes(pc.current_date, [shr, smin], [ehr, emin])
-        log_entry(pc.log_io, entry)
-        pc.entries << entry
+        add_entries(pc, line, :names => [name], :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
       elsif line =~ /.+/
+        # Just names. Update the context.
         pc.current_names = line.split(/,/).map(&:strip)
         pc.log_io.puts "current_names = #{pc.current_names.inspect}"
+      end
+    end
+
+    def add_entries(pc, line, data)
+      names = data.fetch(:names, pc.current_names)
+      times = data.fetch(:times)
+      names.each do |name|
+        entry = { :raw => line }
+        entry[:name] = name
+        entry[:start], entry[:end] = data.fetch(:times)
+        log_entry(pc.log_io, entry)
+        pc.entries << entry
       end
     end
 
