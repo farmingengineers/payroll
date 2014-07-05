@@ -19,7 +19,7 @@ module Timesheets
     private
 
     # Matches a time (e.g. "5:22") and captures hours and minutes ("5" and "22").
-    TimeRegexp = /(\d{1,2}):(\d{1,2})/
+    TimeRegexp = /(\d{1,2})(?::(\d{1,2}))?/
 
     # Matches a time range (e.g. "5:22 - 6:33") and captures hours and minutes from both ("5", "22", "6", "33").
     TimeRangeRegexp = /#{TimeRegexp}[\s-]+#{TimeRegexp}/
