@@ -2,7 +2,9 @@
 #/ Usage: ./script/process [options] farming-engineers-time.csv
 
 require 'optparse'
+require 'yaml'
 
+require_relative "../lib/name_completer"
 require_relative "../lib/timesheets"
 
 def main(options)
@@ -80,9 +82,23 @@ end
 #/
 #/    Mel Adams
 #/    9/3 8:01 9:01
+#/
+#/ or, with config.yml like this
+#/
+#/    employees:
+#/    - Joe Bob
+#/    - Mel Adams
+#/
+#/ and input like this
+#/
+#/    Joe 7:52 - 8:19
 def read_input(path, options)
+  config = YAML.load(File.read(File.expand_path("../config.yml", File.dirname(__FILE__))))
+
   parse_opts = {}
   parse_opts[:log] = $stderr if options[:verbose]
+  parse_opts[:names] = NameCompleter.new(:full_names => config["employees"])
+
   File.open(path) do |f|
     Timesheets.parse_raw(f, parse_opts)
   end

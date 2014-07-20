@@ -8,8 +8,8 @@ module Timesheets
   class Parser
     def parse_raw(io, options = {})
       pc = Struct.
-        new(:log_io, :entries, :current_date, :current_names).
-        new(options.fetch(:log) { NullIO.new }, [], nil, nil)
+        new(:log_io, :name_completer, :entries, :current_date, :current_names).
+        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, [], nil, nil)
       while !io.eof? && line = io.readline
         parse_line(line, pc)
       end
@@ -58,7 +58,7 @@ module Timesheets
       times = data.fetch(:times)
       names.each do |name|
         entry = { :raw => line }
-        entry[:name] = name
+        entry[:name] = pc.name_completer.lookup(name)
         entry[:start], entry[:end] = data.fetch(:times)
         log_entry(pc.log_io, entry)
         pc.entries << entry
@@ -91,6 +91,12 @@ module Timesheets
 
   class NullIO
     def puts(*)
+    end
+  end
+
+  class NullNames
+    def lookup(s)
+      s
     end
   end
 end
