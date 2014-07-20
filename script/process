@@ -23,6 +23,7 @@ def main(options)
   per_employee.sort_by(&:first).each do |employee|
     report_employee(employee)
   end
+  report_total(per_employee.values)
 
 rescue Errno::ENOENT => e
   puts "#$0: #{e.message}"
@@ -121,9 +122,19 @@ end
 #/    Mel Adams 1.00 hours
 def report_employee(employee)
   name, entries = *employee
+  printf "%s %.2f hours\n", name, total(entries)
+end
+
+# Report the total times for the two weeks.
+#/    TOTAL 2.30
+def report_total(all_entries)
+  printf "TOTAL %.2f\n", total(all_entries.flatten)
+end
+
+# Add up the hours from the given entries.
+def total(entries)
   seconds = entries.inject(0) { |sum, entry| sum + (entry[:end] - entry[:start]) }
   hours = seconds / 3600
-  printf "%s %.2f hours\n", name, hours
 end
 
 main(parse_options!)
