@@ -60,6 +60,17 @@ TS
     ], parse(timesheet)
   end
 
+  def test_shared_shift
+    timesheet = <<TS
+9/3
+Joe Bob, Mel Adams 7:55 - 9:01
+TS
+    assert_equal [
+      {:name => "Joe Bob", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
+      {:name => "Mel Adams", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
+    ], parse(timesheet)
+  end
+
   def test_single_digit_times
     timesheet = <<TS
 9/2

@@ -44,8 +44,8 @@ module Timesheets
         add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
       elsif line =~ /^(.+)\s+#{TimeRangeRegexp}$/
         # Name and time range, assume date is already set, output entries.
-        _, name, shr, smin, ehr, emin = $~.to_a
-        add_entries(pc, line, :names => [name], :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+        _, names, shr, smin, ehr, emin = $~.to_a
+        add_entries(pc, line, :names => names.split(/\s*,\s*/), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
       elsif line =~ /.+/
         # Just names. Update the context.
         pc.current_names = line.split(/,/).map(&:strip)
