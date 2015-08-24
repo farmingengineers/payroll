@@ -1,0 +1,17 @@
+#!/bin/sh
+#/ Usage: script/totals
+#/ Shows total hours for each year
+
+set -e
+
+for year in 20??; do
+  find ${year} -type f -exec cat {} + >${year}.txt
+
+  cat <<HEADER
+------------------------------------------------------------------------
+${year}
+----
+HEADER
+  script/process --no-warn ${year}.txt
+  echo ""
+done
