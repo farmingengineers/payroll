@@ -1,0 +1,10 @@
+#!/bin/sh
+
+bundle check ||
+  bundle --path .bundle "$@"
+
+brew bundle check ||
+  brew bundle
+
+brew services list 2>/dev/null | grep ^postgres | grep started ||
+  brew services start postgresql
