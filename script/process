@@ -57,7 +57,7 @@ def parse_options!
   end
   opts.parse!
   if ARGV.size != 1
-    puts opts
+    $stderr.puts opts
     exit 1
   end
   parsed[:input_file] = ARGV[0]
@@ -87,7 +87,7 @@ end
 #/    Mel Adams
 #/    9/3 8:01 9:01
 #/
-#/ or, with config.yml like this
+#/ or, with employees.yml like this
 #/
 #/    employees:
 #/    - Joe Bob
@@ -97,7 +97,7 @@ end
 #/
 #/    Joe 7:52 - 8:19
 def read_input(path, options)
-  config = YAML.load(File.read(File.expand_path("../config.yml", File.dirname(__FILE__))))
+  config = YAML.load(File.read(File.expand_path("../employees.yml", File.dirname(__FILE__))))
 
   parse_opts = {}
   parse_opts[:log] = $stderr if options[:verbose]
