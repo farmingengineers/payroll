@@ -83,6 +83,7 @@ module Timesheets
         end
       end
       task[:name] = words.join(" ")
+      log_task(pc.log_io, task)
       pc.result.tasks << task
     end
 
@@ -107,6 +108,12 @@ module Timesheets
       entry = entry.dup
       entry.delete(:raw)
       log_io.puts entry.inspect
+    end
+
+    def log_task(log_io, task)
+      task = task.dup
+      task[:date] = task[:date].to_s
+      log_io.puts(task.inspect)
     end
   end
 

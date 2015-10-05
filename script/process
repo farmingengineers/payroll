@@ -10,8 +10,9 @@ require_relative "../lib/timesheets"
 def main(options)
   input_file = options.fetch(:input_file)
 
-  parsed = read_input(input_file, options).entries
+  parsed = read_input(input_file, options)
   all_entries = parsed.entries
+  all_tasks = parsed.tasks
   errors = options[:nowarn] ? [] : validate(all_entries)
 
   if errors.any?
@@ -26,7 +27,28 @@ def main(options)
   per_employee.sort_by(&:first).each do |employee|
     report_employee(employee)
   end
-  report_total(per_employee.values)
+  report_total_hours(per_employee.values)
+
+  assigned = hours_per_day(all_entries)
+  known, unknown = all_tasks.partition { |task| task[:hours] }
+  known.each do |task|
+    task_day = task[:date]
+    hours_for_day = assigned[task_day]
+    hours_for_task = task[:hours]
+    assigned[task[:name]] += hours_for_task
+    if hours_for_day < hours_for_task
+      assigned.delete task_day
+    else
+      assigned[task_day] -= hours_for_task
+    end
+  end
+  unknown.group_by { |task| task[:date] }.each do |date, tasks|
+    hours_per = assigned.delete(date).to_f / tasks.size
+    tasks.each do |task|
+      assigned[task[:name]] += hours_per
+    end
+  end
+  puts YAML.dump(assigned)
 
 rescue Errno::ENOENT => e
   puts "#$0: #{e.message}"
@@ -135,6 +157,15 @@ def split_entries(entries)
   per_employee
 end
 
+# Accumulates hours per date.
+def hours_per_day(entries)
+  hours_per_day = Hash.new(0.0)
+  entries.each do |entry|
+    hours_per_day[entry[:start].to_date] += (entry[:end] - entry[:start]) / 3600.0
+  end
+  hours_per_day
+end
+
 # Reports someone's time for the two weeks.
 #/
 #/ output looks like this:
@@ -148,7 +179,7 @@ end
 
 # Report the total times for the two weeks.
 #/    TOTAL 2.30
-def report_total(all_entries)
+def report_total_hours(all_entries)
   printf "TOTAL %.2f\n", total(all_entries.flatten)
 end
 
