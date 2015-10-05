@@ -15,7 +15,7 @@ TS
       {:name => 'Joe Bob', :start => T_2Sep_7_52, :end => T_2Sep_8_19},
       {:name => 'Joe Bob', :start => T_3Sep_7_55, :end => T_3Sep_9_30},
       {:name => 'Mel Adams', :start => T_3Sep_8_01, :end => T_3Sep_9_01},
-    ], parse(timesheet)
+    ], parse_entries(timesheet)
   end
 
   def test_name_first_timesheet
@@ -30,7 +30,7 @@ TS
       {:name => 'Joe Bob', :start => T_2Sep_7_52, :end => T_2Sep_8_19},
       {:name => 'Joe Bob', :start => T_3Sep_7_55, :end => T_3Sep_9_30},
       {:name => 'Mel Adams', :start => T_3Sep_8_01, :end => T_3Sep_9_01},
-    ], parse(timesheet)
+    ], parse_entries(timesheet)
   end
 
   def test_parse_24_and_12_hour_clock
@@ -42,7 +42,7 @@ TS
     assert_equal [
       {:name => 'Joe Bob', :start => T_2Sep_7_52, :end => T_2Sep_13_19},
       {:name => 'Joe Bob', :start => T_3Sep_7_55, :end => T_3Sep_13_30},
-    ], parse(timesheet)
+    ], parse_entries(timesheet)
   end
 
   def test_shared_shifts
@@ -57,7 +57,7 @@ TS
       {:name => "Mel Adams", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
       {:name => "Joe Bob", :start => T_3Sep_9_30, :end => T_3Sep_13_30},
       {:name => "Mel Adams", :start => T_3Sep_9_30, :end => T_3Sep_13_30},
-    ], parse(timesheet)
+    ], parse_entries(timesheet)
   end
 
   def test_shared_shift
@@ -68,7 +68,7 @@ TS
     assert_equal [
       {:name => "Joe Bob", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
       {:name => "Mel Adams", :start => T_3Sep_7_55, :end => T_3Sep_9_01},
-    ], parse(timesheet)
+    ], parse_entries(timesheet)
   end
 
   def test_single_digit_times
@@ -100,7 +100,31 @@ TS
       {:name => "Mel Adams", :start => T_3Sep_8_01, :end => T_3Sep_9_00},
       {:name => "Joe Bob", :start => T_3Sep_10_00, :end => T_3Sep_12_00},
       {:name => "Mel Adams", :start => T_3Sep_1_00, :end => T_3Sep_2_00},
-    ], parse(timesheet)
+    ], parse_entries(timesheet)
+  end
+
+  def test_one_task
+    timesheet = <<TS
+9/2
+Joe
+7 - 8
+* weeding
+TS
+    assert_equal [
+      {:name => "weeding", :date => Date.new(Year, 9, 2)},
+    ], parse_tasks(timesheet)
+  end
+
+  def test_task_with_duration
+    timesheet = <<TS
+9/2
+Joe
+7 - 8
+* weeding 2hr
+TS
+    assert_equal [
+      {:name => "weeding", :date => Date.new(Year, 9, 2), :hours => 2.0},
+    ], parse_tasks(timesheet)
   end
 
   Year = Time.now.year
@@ -128,9 +152,14 @@ TS
 
   private
 
-  def parse(timesheet)
+  def parse_entries(timesheet)
     require 'stringio'
-    Timesheets.parse_raw(StringIO.new(timesheet)).map { |x| {:name => x[:name], :start => x[:start], :end => x[:end]} }
+    Timesheets.parse_raw(StringIO.new(timesheet)).entries.map { |x| {:name => x[:name], :start => x[:start], :end => x[:end]} }
+  end
+
+  def parse_tasks(timesheet)
+    require 'stringio'
+    Timesheets.parse_raw(StringIO.new(timesheet)).tasks
   end
 
   require 'pp'

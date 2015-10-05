@@ -10,7 +10,8 @@ require_relative "../lib/timesheets"
 def main(options)
   input_file = options.fetch(:input_file)
 
-  all_entries = read_input(input_file, options)
+  parsed = read_input(input_file, options).entries
+  all_entries = parsed.entries
   errors = options[:nowarn] ? [] : validate(all_entries)
 
   if errors.any?

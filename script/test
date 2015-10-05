@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require "minitest/autorun"
+Dir[File.expand_path("../**/*_test.rb", File.dirname(__FILE__))].each do |test_file|
+  load test_file
+end

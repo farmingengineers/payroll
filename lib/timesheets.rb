@@ -13,7 +13,7 @@ module Timesheets
       while !io.eof? && line = io.readline
         parse_line(line, pc)
       end
-      pc.entries
+      pc
     end
 
     private
