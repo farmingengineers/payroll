@@ -7,13 +7,14 @@ module Timesheets
 
   class Parser
     def parse_raw(io, options = {})
+      result = Struct.new(:entries, :tasks).new([], [])
       pc = Struct.
-        new(:log_io, :name_completer, :entries, :current_date, :current_names).
-        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, [], nil, nil)
+        new(:log_io, :name_completer, :result, :current_date, :current_names).
+        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, result, nil, nil)
       while !io.eof? && line = io.readline
         parse_line(line, pc)
       end
-      pc
+      pc.result
     end
 
     private
@@ -30,23 +31,26 @@ module Timesheets
     def parse_line(line, pc)
       pc.log_io.puts "< #{line}"
       line = line.strip
-      if line =~ /^#{DateRegexp}$/
+      case line
+      when /^\*\s+(.*)/
+        add_task(pc, $1)
+      when /^#{DateRegexp}$/
         # Just a date, set the context.
         pc.current_date = parse_date(line)
         pc.log_io.puts "current_date = #{pc.current_date}"
-      elsif line =~ /^#{TimeRangeRegexp}$/
+      when /^#{TimeRangeRegexp}$/
         # Just a time range, assume name and date are already set, output entries.
         _, shr, smin, ehr, emin = $~.to_a
         add_entries(pc, line, :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
-      elsif line =~ /^(#{DateRegexp})\s+#{TimeRangeRegexp}$/
+      when /^(#{DateRegexp})\s+#{TimeRangeRegexp}$/
         # Date and time range, assume name is already set, output entries.
         _, date, shr, smin, ehr, emin = $~.to_a
         add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
-      elsif line =~ /^(.+)\s+#{TimeRangeRegexp}$/
+      when /^(.+)\s+#{TimeRangeRegexp}$/
         # Name and time range, assume date is already set, output entries.
         _, names, shr, smin, ehr, emin = $~.to_a
         add_entries(pc, line, :names => names.split(/\s*,\s*/), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
-      elsif line =~ /.+/
+      when /.+/
         # Just names. Update the context.
         pc.current_names = line.split(/,/).map(&:strip)
         pc.log_io.puts "current_names = #{pc.current_names.inspect}"
@@ -61,8 +65,25 @@ module Timesheets
         entry[:name] = pc.name_completer.lookup(name)
         entry[:start], entry[:end] = data.fetch(:times)
         log_entry(pc.log_io, entry)
-        pc.entries << entry
+        pc.result.entries << entry
       end
+    end
+
+    def add_task(pc, line)
+      task = {:date => pc.current_date}
+      words = []
+      line.split(/\s+/).each do |word|
+        case word
+        when /(\d+)min/
+          task[:hours] = $1.to_f / 60.0
+        when /(\d+)hr/
+          task[:hours] = $1.to_f
+        else
+          words << word
+        end
+      end
+      task[:name] = words.join(" ")
+      pc.result.tasks << task
     end
 
     def parse_date(date_str)
