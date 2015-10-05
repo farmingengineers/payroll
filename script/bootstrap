@@ -6,5 +6,9 @@ brew bundle check ||
 brew services list 2>/dev/null | grep ^postgres | grep started ||
   brew services start postgresql
 
+printf "Bower "
+bower --version ||
+  npm install -g bower
+
 bundle check ||
   bundle --path .bundle "$@"
