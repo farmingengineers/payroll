@@ -30,10 +30,9 @@ module Timesheets
 
     def parse_line(line, pc)
       pc.log_io.puts "< #{line}"
-      line = line.strip
+      line, *tasks = line.split(/\s*\*\s*/).map(&:strip)
+      new_entries = []
       case line
-      when /^\*\s+(.*)/
-        add_task(pc, $1)
       when /^#{DateRegexp}$/
         # Just a date, set the context.
         pc.current_date = parse_date(line)
@@ -41,50 +40,67 @@ module Timesheets
       when /^#{TimeRangeRegexp}$/
         # Just a time range, assume name and date are already set, output entries.
         _, shr, smin, ehr, emin = $~.to_a
-        add_entries(pc, line, :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+        new_entries = add_entries(pc, line, :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
       when /^(#{DateRegexp})\s+#{TimeRangeRegexp}$/
         # Date and time range, assume name is already set, output entries.
         _, date, shr, smin, ehr, emin = $~.to_a
-        add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
+        new_entries = add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
       when /^(.+)\s+#{TimeRangeRegexp}$/
         # Name and time range, assume date is already set, output entries.
         _, names, shr, smin, ehr, emin = $~.to_a
-        add_entries(pc, line, :names => names.split(/\s*,\s*/), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+        new_entries = add_entries(pc, line, :names => names.split(/\s*,\s*/), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
       when /.+/
         # Just names. Update the context.
         pc.current_names = line.split(/,/).map(&:strip)
         pc.log_io.puts "current_names = #{pc.current_names.inspect}"
       end
+      add_tasks(pc, tasks, new_entries)
     end
 
     def add_entries(pc, line, data)
       names = data.fetch(:names, pc.current_names)
       times = data.fetch(:times)
-      names.each do |name|
+      names.map do |name|
         entry = { :raw => line }
         entry[:name] = pc.name_completer.lookup(name)
         entry[:start], entry[:end] = data.fetch(:times)
         log_entry(pc.log_io, entry)
         pc.result.entries << entry
+        entry
       end
     end
 
-    def add_task(pc, line)
-      task = {:date => pc.current_date}
-      words = []
-      line.split(/\s+/).each do |word|
-        case word
-        when /(\d+)min/
-          task[:hours] = $1.to_f / 60.0
-        when /(\d+)hr/
-          task[:hours] = $1.to_f
-        else
-          words << word
+    def add_tasks(pc, raw_tasks, entries)
+      return [] unless raw_tasks.any?
+      entries_hours = entries.inject(0.0) { |sum, entry| sum + (entry[:end] - entry[:start]) / 3600.0 }
+      task_date = entries.any? ? entries.first[:start].to_date : pc.current_date
+      tasks = raw_tasks.map do |line|
+        task = {}
+        words = []
+        line.split(/\s+/).each do |word|
+          case word
+          when /(\d+)min/
+            task[:hours] = $1.to_f / 60.0
+          when /(\d+)hr/
+            task[:hours] = $1.to_f
+          else
+            words << word
+          end
         end
+        entries_hours -= task[:hours].to_f
+        task.update \
+          :date => task_date,
+          :name => words.join(" ")
       end
-      task[:name] = words.join(" ")
-      log_task(pc.log_io, task)
-      pc.result.tasks << task
+      if entries_hours > 0
+        no_hours = tasks.select { |task| task[:hours].nil? }
+        hours_per = entries_hours / no_hours.size
+        no_hours.each { |task| task[:hours] = hours_per }
+      end
+      tasks.each do |task|
+        pc.result.tasks << task
+        log_task(pc.log_io, task)
+      end
     end
 
     def parse_date(date_str)

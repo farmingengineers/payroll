@@ -127,6 +127,21 @@ TS
     ], parse_tasks(timesheet)
   end
 
+  def test_time_entry_with_task
+    timesheet = <<TS
+9/2
+Joe
+10 - 11 * weeding * harvesting
+TS
+    assert_equal [
+      {:name => "weeding", :date => Date.new(Year, 9, 2), :hours => 0.5},
+      {:name => "harvesting", :date => Date.new(Year, 9, 2), :hours => 0.5},
+    ], parse_tasks(timesheet)
+    assert_equal [
+      {:name => "Joe", :start => T_2Sep_10_00, :end => T_2Sep_11_00},
+    ], parse_entries(timesheet)
+  end
+
   Year = Time.now.year
   T_2Sep_7_00 = Time.local(Year, "sep", 2, 7, 00)
   T_2Sep_7_52 = Time.local(Year, "sep", 2, 7, 52)

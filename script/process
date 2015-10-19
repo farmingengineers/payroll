@@ -48,7 +48,14 @@ def main(options)
       assigned[task[:name]] += hours_per
     end
   end
-  puts YAML.dump(assigned)
+  label_width = assigned.keys.map(&:to_s).map(&:size).max
+  format = "%#{label_width}s %7.2f\n"
+  assigned.each do |label, hours|
+    if hours >= 0.01
+      printf format, label, hours
+    end
+  end
+  printf format, "TOTAL", assigned.values.inject(&:+)
 
 rescue Errno::ENOENT => e
   puts "#$0: #{e.message}"
