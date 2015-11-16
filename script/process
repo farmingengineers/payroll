@@ -50,13 +50,14 @@ def main(options)
   end
   assigned = assigned.map { |key, val| [ key.is_a?(Date) ? "unknown (#{key})" : key, val ] }
   label_width = assigned.map(&:first).map(&:to_s).map(&:size).max
-  format = "%#{label_width}s %7.2f\n"
+  total = assigned.map(&:last).inject(&:+)
+  format = "%#{label_width}s %7.2f %7.0f%%\n"
   assigned.each do |label, hours|
     if hours >= 0.01
-      printf format, label, hours
+      printf format, label, hours, 100.0 * hours / total
     end
   end
-  printf format, "TOTAL", assigned.map(&:last).inject(&:+)
+  printf format, "TOTAL", total, 100
 
 rescue Errno::ENOENT => e
   puts "#$0: #{e.message}"
