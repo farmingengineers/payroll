@@ -121,9 +121,11 @@ TS
 Joe
 7 - 8
 * weeding 2hr
+* 4h harvesting
 TS
     assert_equal [
       {:name => "weeding", :date => Date.new(Year, 9, 2), :hours => 2.0},
+      {:name => "harvesting", :date => Date.new(Year, 9, 2), :hours => 4.0},
     ], parse_tasks(timesheet)
   end
 

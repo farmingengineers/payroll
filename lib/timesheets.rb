@@ -81,7 +81,7 @@ module Timesheets
           case word
           when /(\d+)min/
             task[:hours] = $1.to_f / 60.0
-          when /(\d+)hr/
+          when /(\d+)hr/, /(\d+)h/
             task[:hours] = $1.to_f
           else
             words << word
