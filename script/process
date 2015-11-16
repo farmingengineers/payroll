@@ -48,14 +48,15 @@ def main(options)
       assigned[task[:name]] += hours_per
     end
   end
-  label_width = assigned.keys.map(&:to_s).map(&:size).max
+  assigned = assigned.map { |key, val| [ key.is_a?(Date) ? "unknown (#{key})" : key, val ] }
+  label_width = assigned.map(&:first).map(&:to_s).map(&:size).max
   format = "%#{label_width}s %7.2f\n"
   assigned.each do |label, hours|
     if hours >= 0.01
       printf format, label, hours
     end
   end
-  printf format, "TOTAL", assigned.values.inject(&:+)
+  printf format, "TOTAL", assigned.map(&:last).inject(&:+)
 
 rescue Errno::ENOENT => e
   puts "#$0: #{e.message}"
