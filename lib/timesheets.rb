@@ -9,9 +9,10 @@ module Timesheets
     def parse_raw(io, options = {})
       result = Struct.new(:entries, :tasks).new([], [])
       pc = Struct.
-        new(:log_io, :name_completer, :result, :current_date, :current_names).
-        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, result, nil, nil)
+        new(:log_io, :name_completer, :result, :current_date, :current_names, :line_number).
+        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, result, nil, nil, 0)
       while !io.eof? && line = io.readline
+        pc.line_number += 1
         parse_line(line, pc)
       end
       pc.result
@@ -48,11 +49,15 @@ module Timesheets
       when /^(.+)\s+#{TimeRangeRegexp}$/
         # Name and time range, assume date is already set, output entries.
         _, names, shr, smin, ehr, emin = $~.to_a
-        new_entries = add_entries(pc, line, :names => names.split(/\s*,\s*/), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+        new_entries = add_entries(pc, line, :names => split_names(pc, names), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
       when /.+/
         # Just names. Update the context.
-        pc.current_names = line.split(/,/).map(&:strip)
+        pc.current_names = split_names(pc, line)
         pc.log_io.puts "current_names = #{pc.current_names.inspect}"
+      when /\A\s*\z/
+        # nothing
+      else
+        raise "Unparseable #{line.inspect}"
       end
       add_tasks(pc, tasks, new_entries)
     end
@@ -62,12 +67,16 @@ module Timesheets
       times = data.fetch(:times)
       names.map do |name|
         entry = { :raw => line }
-        entry[:name] = pc.name_completer.lookup(name)
+        entry[:name] = name
         entry[:start], entry[:end] = data.fetch(:times)
         log_entry(pc.log_io, entry)
         pc.result.entries << entry
         entry
       end
+    end
+
+    def split_names(pc, str)
+      str.split(",").map { |name| pc.name_completer.lookup(name) or raise "Line #{pc.line_number}: Didn't recognize #{name.inspect}" }
     end
 
     def add_tasks(pc, raw_tasks, entries)
@@ -104,7 +113,9 @@ module Timesheets
     end
 
     def parse_date(date_str)
-      Date.parse(date_str)
+      m, d, y = date_str.split("/", 3)
+      y ||= Time.now.year
+      Date.new y.to_i, m.to_i, d.to_i
     end
 
     def mktimes(date, raw_start, raw_end)

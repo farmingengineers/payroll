@@ -18,6 +18,21 @@ TS
     ], parse_entries(timesheet)
   end
 
+  def test_date_with_explicit_year
+    timesheet = <<TS
+9/2/1999
+Joe Bob 7:52 8:19
+9/3/2001
+Joe Bob 7:55-9:30
+Mel Adams 8:01 9:01
+TS
+    assert_equal [
+      {:name => 'Joe Bob', :start => T_2Sep1999_7_52, :end => T_2Sep1999_8_19},
+      {:name => 'Joe Bob', :start => T_3Sep2001_7_55, :end => T_3Sep2001_9_30},
+      {:name => 'Mel Adams', :start => T_3Sep2001_8_01, :end => T_3Sep2001_9_01},
+    ], parse_entries(timesheet)
+  end
+
   def test_name_first_timesheet
     timesheet = <<TS
 Joe Bob
@@ -166,6 +181,14 @@ TS
   T_3Sep_13_30 = Time.local(Year, "sep", 3, 13, 30)
   T_3Sep_1_00 = Time.local(Year, "sep", 3, 1, 00)
   T_3Sep_2_00 = Time.local(Year, "sep", 3, 2, 00)
+
+  T_2Sep1999_7_52 = Time.local(1999, "sep", 2, 7, 52)
+  T_2Sep1999_8_19 = Time.local(1999, "sep", 2, 8, 19)
+
+  T_3Sep2001_7_55 = Time.local(2001, "sep", 3, 7, 55)
+  T_3Sep2001_8_01 = Time.local(2001, "sep", 3, 8, 01)
+  T_3Sep2001_9_01 = Time.local(2001, "sep", 3, 9, 01)
+  T_3Sep2001_9_30 = Time.local(2001, "sep", 3, 9, 30)
 
   private
 
