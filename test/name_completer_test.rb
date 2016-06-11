@@ -33,4 +33,16 @@ class NameCompleterTest < MiniTest::Unit::TestCase
       nc.lookup("Mel")
     end
   end
+
+  def test_alias
+    nc = NameCompleter.new :full_names => ["Mel Adams", "Mel Bob"],
+      :aliases => {"MA" => "Mel Adams"}
+    assert_equal "Mel Adams", nc.lookup("MA")
+  end
+
+  def test_alias_downcased
+    nc = NameCompleter.new :full_names => ["Mel Adams", "Mel Bob"],
+      :aliases => {"Ma" => "Mel Adams"}
+    assert_equal "Mel Adams", nc.lookup("mA")
+  end
 end

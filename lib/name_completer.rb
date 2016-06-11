@@ -4,15 +4,27 @@ class NameCompleter
 
   def initialize(options)
     @full_names = options.fetch(:full_names)
+    @aliases = options.fetch(:aliases, {})
   end
 
   def lookup(name)
-    dname = name.downcase
+    aliased = match_alias(name) || name
+    dname = aliased.downcase
     matches = @full_names.select { |n| n.downcase.start_with?(dname) }
     raise NotFound, "#{name.inspect} is not in the list!" \
       if matches.empty?
     raise Ambiguous, "#{name.inspect} matched more than one (#{matches.inspect})" \
       if matches.size > 1
     matches.first
+  end
+
+  private
+  def match_alias(name)
+    if match = @aliases[name]
+      return match
+    else
+      key_match = @aliases.keys.find { |k| k.downcase == name.downcase }
+      return @aliases[key_match]
+    end
   end
 end

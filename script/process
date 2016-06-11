@@ -133,7 +133,7 @@ def read_input(path, options)
 
   parse_opts = {}
   parse_opts[:log] = $stderr if options[:verbose]
-  parse_opts[:names] = NameCompleter.new(:full_names => config["employees"])
+  parse_opts[:names] = NameCompleter.new(:full_names => config["employees"], :aliases => config["aliases"])
 
   File.open(path) do |f|
     Timesheets.parse_raw(f, parse_opts)
