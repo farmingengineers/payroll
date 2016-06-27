@@ -81,7 +81,7 @@ module Timesheets
     end
 
     def split_names(pc, str)
-      str.split(",").map { |name| pc.name_completer.lookup(name) or raise "Line #{pc.line_number}: Didn't recognize #{name.inspect}" }
+      str.split(",").map(&:strip).map { |name| pc.name_completer.lookup(name) or raise "Line #{pc.line_number}: Didn't recognize #{name.inspect}" }
     end
 
     def add_tasks(pc, raw_tasks, entries)
