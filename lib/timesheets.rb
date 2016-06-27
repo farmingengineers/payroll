@@ -9,13 +9,18 @@ module Timesheets
     def parse_raw(io, options = {})
       result = Struct.new(:entries, :tasks).new([], [])
       pc = Struct.
-        new(:log_io, :name_completer, :result, :current_date, :current_names, :line_number).
-        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, result, nil, nil, 0)
+        new(:log_io, :name_completer, :result, :current_date, :current_names, :line_number, :path).
+        new(options.fetch(:log) { NullIO.new }, options.fetch(:names) { NullNames.new }, result, nil, nil, 0, nil)
+      pc.path = io.path if io.respond_to?(:path)
       while !io.eof? && line = io.readline
         pc.line_number += 1
         parse_line(line, pc)
       end
       pc.result
+    rescue Object => e
+      e.extend HasParserContext
+      e.parser_context = pc
+      raise
     end
 
     private
@@ -152,6 +157,18 @@ module Timesheets
   class NullNames
     def lookup(s)
       s
+    end
+  end
+
+  module HasParserContext
+    attr_accessor :parser_context
+
+    def message
+      if parser_context && parser_context.line_number
+        "at input #{parser_context.path ? (parser_context.path + ":") : "line "}#{parser_context.line_number}: #{super}"
+      else
+        super
+      end
     end
   end
 end
