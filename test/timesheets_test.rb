@@ -118,6 +118,41 @@ TS
     ], parse_entries(timesheet)
   end
 
+  def test_with_breaks_with_name
+    timesheet = <<TS
+9/3
+Joe Bob 7 - (7:55 - 8:01) (9 10:00) - 12
+TS
+    assert_equal [
+      {:name => "Joe Bob", :start => T_3Sep_7_00, :end => T_3Sep_7_55},
+      {:name => "Joe Bob", :start => T_3Sep_8_01, :end => T_3Sep_9_00},
+      {:name => "Joe Bob", :start => T_3Sep_10_00, :end => T_3Sep_12_00},
+    ], parse_entries(timesheet)
+  end
+
+  def test_with_breaks_one_line
+    timesheet = <<TS
+9/3 Joe Bob 7 - (7:55 - 8:01) (9 10:00) - 12
+TS
+    assert_equal [
+      {:name => "Joe Bob", :start => T_3Sep_7_00, :end => T_3Sep_7_55},
+      {:name => "Joe Bob", :start => T_3Sep_8_01, :end => T_3Sep_9_00},
+      {:name => "Joe Bob", :start => T_3Sep_10_00, :end => T_3Sep_12_00},
+    ], parse_entries(timesheet)
+  end
+
+  def test_with_breaks_with_date
+    timesheet = <<TS
+Joe Bob
+9/3 7 - (7:55 - 8:01) (9 10:00) - 12
+TS
+    assert_equal [
+      {:name => "Joe Bob", :start => T_3Sep_7_00, :end => T_3Sep_7_55},
+      {:name => "Joe Bob", :start => T_3Sep_8_01, :end => T_3Sep_9_00},
+      {:name => "Joe Bob", :start => T_3Sep_10_00, :end => T_3Sep_12_00},
+    ], parse_entries(timesheet)
+  end
+
   def test_one_task
     timesheet = <<TS
 9/2
