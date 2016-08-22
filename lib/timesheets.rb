@@ -31,6 +31,9 @@ module Timesheets
     # Matches a time range (e.g. "5:22 - 6:33") and captures hours and minutes from both ("5", "22", "6", "33").
     TimeRangeRegexp = /#{TimeRegexp}[\s-]+#{TimeRegexp}/
 
+    # Matches a time range with breaks (e.g. "5:22 - (5:45 - 5:55) - 6:33") and captures the start and end.
+    TimeRangeWithGapsRegexp = /#{TimeRegexp}[\s-]*(\(.*\))[\s-]*#{TimeRegexp}/
+
     # Matches a date (e.g. "9/2"), captures nothing.
     DateRegexp = /[0-9\/-]+/
 
@@ -55,6 +58,14 @@ module Timesheets
         # Name and time range, assume date is already set, output entries.
         _, names, shr, smin, ehr, emin = $~.to_a
         new_entries = add_entries(pc, line, :names => split_names(pc, names), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
+      when /^(#{DateRegexp})?(.+)?\s+#{TimeRangeWithGapsRegexp}$/
+        # Name/date and time range with gaps, date or name may be set already.
+        _, date, names, shr, smin, breaks, ehr, emin = $~.to_a
+        date = date ? parse_date(date) : pc.current_date
+        names = names ? split_names(pc, names) : pc.current_names
+        each_work_period([shr, smin], breaks, [ehr, emin]) do |s, e|
+          new_entries += add_entries(pc, line, :names => names, :times => mktimes(date, s, e))
+        end
       when /.+/
         # Just names. Update the context.
         pc.current_names = split_names(pc, line)
@@ -80,8 +91,17 @@ module Timesheets
       end
     end
 
+    # Given "Joe, Bob", return ["Joe Smith", "Bob Adams"]
     def split_names(pc, str)
       str.split(",").map(&:strip).map { |name| pc.name_completer.lookup(name) or raise "Line #{pc.line_number}: Didn't recognize #{name.inspect}" }
+    end
+
+    def each_work_period(start, raw_breaks, finish)
+      raw_breaks.scan(/\(#{TimeRangeRegexp}\)/) do |shr, smin, ehr, emin|
+        yield(start, [shr, smin])
+        start = [ehr, emin]
+      end
+      yield(start, finish)
     end
 
     def add_tasks(pc, raw_tasks, entries)
