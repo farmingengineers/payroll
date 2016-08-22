@@ -50,15 +50,13 @@ module Timesheets
         # Just a time range, assume name and date are already set, output entries.
         _, shr, smin, ehr, emin = $~.to_a
         new_entries = add_entries(pc, line, :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
-      when /^(#{DateRegexp})\s+#{TimeRangeRegexp}$/
-        # Date and time range, assume name is already set, output entries.
-        _, date, shr, smin, ehr, emin = $~.to_a
-        new_entries = add_entries(pc, line, :times => mktimes(parse_date(date), [shr, smin], [ehr, emin]))
-      when /^(.+)\s+#{TimeRangeRegexp}$/
-        # Name and time range, assume date is already set, output entries.
-        _, names, shr, smin, ehr, emin = $~.to_a
-        new_entries = add_entries(pc, line, :names => split_names(pc, names), :times => mktimes(pc.current_date, [shr, smin], [ehr, emin]))
-      when /^(#{DateRegexp})?(.+)?\s+#{TimeRangeWithGapsRegexp}$/
+      when /^(#{DateRegexp}\s+)?([^0-9]+)?#{TimeRangeRegexp}$/
+        # Date and/or names and time range, date or name may be set already.
+        _, date, names, shr, smin, ehr, emin = $~.to_a
+        date = date ? parse_date(date) : pc.current_date
+        names = names ? split_names(pc, names) : pc.current_names
+        new_entries = add_entries(pc, line, :names => names, :times => mktimes(date, [shr, smin], [ehr, emin]))
+      when /^(#{DateRegexp})?([^0-9]+)?\s+#{TimeRangeWithGapsRegexp}$/
         # Name/date and time range with gaps, date or name may be set already.
         _, date, names, shr, smin, breaks, ehr, emin = $~.to_a
         date = date ? parse_date(date) : pc.current_date

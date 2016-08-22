@@ -48,6 +48,19 @@ TS
     ], parse_entries(timesheet)
   end
 
+  def test_all_in_one
+    timesheet = <<TS
+9/2 Joe Bob 7:52-8:19
+9/3 Joe Bob 7:55 9:30
+9/3 Mel Adams 8:01 9:01
+TS
+    assert_equal [
+      {:name => 'Joe Bob', :start => T_2Sep_7_52, :end => T_2Sep_8_19},
+      {:name => 'Joe Bob', :start => T_3Sep_7_55, :end => T_3Sep_9_30},
+      {:name => 'Mel Adams', :start => T_3Sep_8_01, :end => T_3Sep_9_01},
+    ], parse_entries(timesheet)
+  end
+
   def test_parse_24_and_12_hour_clock
     timesheet = <<TS
 Joe Bob
