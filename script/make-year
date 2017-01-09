@@ -1,0 +1,53 @@
+#!/bin/bash
+#/ Usage: script/make-year YYYY
+#/ Creates the year's folder in dropbox, links it here, and creates subdirs for the months.
+
+main() {
+  test $0 = "script/make-year" || usage You must run this from the payroll dir.
+  test $# -eq 1 || usage
+  echo $1 | grep '^20[0-9][0-9]$' >/dev/null || usage
+
+  YEAR=$1
+  DROPBOX=~/Dropbox/self/Farm/payroll/$YEAR
+
+  mkdir -p $DROPBOX
+  ensure_link $YEAR $DROPBOX
+  make_months $YEAR
+
+  ls -ld $YEAR $YEAR/*
+}
+
+ensure_link() {
+  local link=$1
+  local dir=$2
+  local bak=$link.bak.$(date +%s).$$
+  if [ -L "$link" ]; then
+    if [ "$(readlink $link)" = "$dir" ]; then
+      return
+    fi
+  fi
+  if [ -e "$link" ]; then
+    echo "$link already exists, but isn't a symlink to $dir, moving to $bak"
+    mv $link $bak
+  fi
+  if [ -e "$link" ]; then
+    echo "$link still exists. :("
+    exit 1
+  fi
+  ln -s $dir $link
+}
+
+make_months() {
+  local year=$1
+  for mon in 0{1,2,3,4,5,6,7,8,9} 1{0,1,2}; do
+    mkdir -p $year/$mon
+  done
+}
+
+usage() {
+  test -n "$*" && echo "$*"
+  cat "$0" | grep ^#/ | cut -c4-
+  exit 1
+}
+
+main "$@"
