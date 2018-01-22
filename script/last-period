@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+t = Time.now
+until t.saturday?
+  t -= 86400
+end
+puts t.strftime("%Y-%m-%d")
