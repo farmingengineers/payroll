@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+set -o nounset
+
+EDITOR=${EDITOR:-vi}
+period=$(script/last-period)
+file=$(echo $period | tr - /).txt
+exec $EDITOR $file
