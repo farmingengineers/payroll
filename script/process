@@ -9,6 +9,7 @@ require_relative "../lib/timesheets"
 
 def main(options)
   input_file = options.fetch(:input_file)
+  detailed = options.fetch(:detailed, false)
 
   parsed = read_input(input_file, options)
   all_entries = parsed.entries
@@ -28,6 +29,8 @@ def main(options)
     report_employee(employee)
   end
   report_total_hours(per_employee.values)
+
+  return unless detailed
 
   assigned = hours_per_day(all_entries)
   known, unknown = all_tasks.partition { |task| task[:hours] }
@@ -69,6 +72,10 @@ def parse_options!
   parsed = {}
   opts = OptionParser.new do |opts|
     opts.banner = File.read(__FILE__).lines.select { |line| line =~ /^#\// }.map { |line| line[3..-1].chomp }.join("\n") + "\n\n"
+
+    opts.on "--detailed", "Show types of work" do
+      parsed[:detailed] = true
+    end
 
     opts.on "--no-warn", "Don't report errors and process anyway" do
       parsed[:nowarn] = true
