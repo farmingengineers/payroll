@@ -157,6 +157,7 @@ module Timesheets
     def log_entry(log_io, entry)
       entry = entry.dup
       entry.delete(:raw)
+      entry[:duration] = (entry[:end] - entry[:start]) / 3600.0
       log_io.puts entry.inspect
     end
 
