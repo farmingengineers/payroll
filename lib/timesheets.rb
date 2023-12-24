@@ -2,10 +2,16 @@ require 'date'
 
 module Timesheets
   def self.parse_raw(io, options = {})
-    Parser.new.parse_raw(io, options)
+    parser_opts = {}
+    parser_opts[:year] = options[:year] if options[:year]
+    Parser.new(parser_opts).parse_raw(io, options)
   end
 
   class Parser
+    def initialize(options)
+      @year = options[:year]
+    end
+
     def parse_raw(io, options = {})
       result = Struct.new(:entries, :tasks).new([], [])
       pc = Struct.
@@ -137,7 +143,7 @@ module Timesheets
 
     def parse_date(date_str)
       m, d, y = date_str.split("/", 3)
-      y ||= Time.now.year
+      y ||= @year || Time.now.year
       Date.new y.to_i, m.to_i, d.to_i
     end
 

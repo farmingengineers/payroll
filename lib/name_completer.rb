@@ -5,6 +5,7 @@ class NameCompleter
   def initialize(options)
     @full_names = options.fetch(:full_names)
     @aliases = options.fetch(:aliases, {})
+    @historical = options.fetch(:historical, false)
   end
 
   def lookup(name)
@@ -14,7 +15,7 @@ class NameCompleter
     raise NotFound, "#{name.inspect} is not in the list!" \
       if matches.empty?
     raise Ambiguous, "#{name.inspect} matched more than one (#{matches.inspect})" \
-      if matches.size > 1
+      if matches.size > 1 && !@historical
     matches.first
   end
 

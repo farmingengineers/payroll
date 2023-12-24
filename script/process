@@ -81,6 +81,14 @@ def parse_options!
       parsed[:nowarn] = true
     end
 
+    opts.on "--historical", "Use former_employees, too" do
+      parsed[:historical] = true
+    end
+
+    opts.on "--year YEAR", "Process dates as if they were in YEAR" do |v|
+      parsed[:year] = v.to_i
+    end
+
     opts.on "-f", "--force", "Process even if there are errors" do
       parsed[:force] = true
     end
@@ -138,9 +146,16 @@ end
 def read_input(path, options)
   config = YAML.load(File.read(File.expand_path("../employees.yml", File.dirname(__FILE__))))
 
+  employees = config["employees"]
+  aliases = config["aliases"]
+  if options[:historical]
+    employees += config["former_employees"]
+  end
+
   parse_opts = {}
   parse_opts[:log] = $stderr if options[:verbose]
-  parse_opts[:names] = NameCompleter.new(:full_names => config["employees"], :aliases => config["aliases"])
+  parse_opts[:names] = NameCompleter.new(:full_names => employees, :aliases => aliases, :historical => options[:historical])
+  parse_opts[:year] = options[:year] if options[:year]
 
   File.open(path) do |f|
     Timesheets.parse_raw(f, parse_opts)
