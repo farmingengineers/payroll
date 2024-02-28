@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+#/ Usage: ./script/hours-per-week farming-engineers-time.txt...
+
+require "csv"
+
+require_relative "../lib/parser"
+
+def main(files)
+  all_entries = []
+  files.each do |file|
+    year = File.basename(File.dirname(File.dirname(file))).to_i
+    parsed = read_input(file, {year: year})
+    all_entries += parsed.entries
+  end
+
+  people = all_entries.map { |e| e[:name] }.uniq.sort
+
+  all_entries_by_week = all_entries.group_by { |e| week_of(e[:start]) }
+
+  csv = CSV.new($stdout, write_headers: true, headers: ["Week"] + people)
+
+  week = all_entries_by_week.keys.sort.first
+  until all_entries_by_week.empty?
+    if entries = all_entries_by_week.delete(week)
+      hours = Hash.new(0)
+      entries.each do |e|
+        hours[e[:name]] += e[:end] - e[:start]
+      end
+      csv << [week.to_s, people.map { |n| hours[n] / 3600.0 }].flatten
+    else
+      csv << [week.to_s, people.map { 0 }].flatten
+    end
+    week += 7
+  end
+end
+
+# week returns the Date of the Sunday that starts the week that includes t.
+def week_of(t)
+  t.to_date - t.wday
+end
+
+main(ARGV)
