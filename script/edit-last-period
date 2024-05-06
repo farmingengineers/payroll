@@ -7,4 +7,5 @@ EDITOR=${EDITOR:-vi}
 period=$(script/last-period)
 file=$(echo $period | tr - /).txt
 $EDITOR $file
+set -x
 script/process $file
