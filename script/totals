@@ -1,12 +1,23 @@
-#!/bin/sh
+#!/bin/bash
 #/ Usage: script/totals
 #/ Shows total hours for each year
 
 set -e
 
+filter=( )
+if [ -n "$YTD" ]; then
+  # obviously this is "year to date through end of august"
+  filter=( \
+    -not -path '*/09/*' \
+    -not -path '*/10/*' \
+    -not -path '*/11/*' \
+    -not -path '*/12/*' \
+  )
+fi
+
 mkdir -p .totals
 for year in 20??; do
-  find ${year}/ -name '*.txt' -type f -exec cat {} + > .totals/${year}.txt
+  find ${year}/ "${filter[@]}" -name '*.txt' -type f -exec cat {} + > .totals/${year}.txt
 
   cat <<HEADER
 ------------------------------------------------------------------------

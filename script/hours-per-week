@@ -9,7 +9,7 @@ def main(files)
   all_entries = []
   files.each do |file|
     year = File.basename(File.dirname(File.dirname(file))).to_i
-    parsed = read_input(file, {year: year})
+    parsed = read_input(file, {year: year, historical: true})
     all_entries += parsed.entries
   end
 
