@@ -64,6 +64,10 @@ rescue Errno::ENOENT => e
   puts "#$0: #{e.message}"
   exit 1
 
+rescue NameCompleter::NotFound => e
+  puts "error: #{e.message}"
+  exit 1
+
 end
 
 def parse_options!
